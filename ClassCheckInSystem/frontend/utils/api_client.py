@@ -12,21 +12,12 @@ class APIClient:
     """Flask后端API客户端"""
     
     def __init__(self, base_url: str = "http://localhost:5000"):
-        # 从环境变量或Streamlit secrets获取API地址
-        try:
-            import os
-            self.base_url = os.getenv('BACKEND_API_URL', base_url).rstrip('/')
-        except:
-            self.base_url = base_url.rstrip('/')
-        
+        self.base_url = base_url.rstrip('/')
         self.session = requests.Session()
         self.session.headers.update({
             'Content-Type': 'application/json',
             'Accept': 'application/json'
         })
-        
-        # 检查是否为离线模式 - 强制启用离线模式用于演示
-        self.offline_mode = True  # 强制启用离线模式
     
     def set_auth_token(self, token: str):
         """设置认证令牌"""
@@ -36,42 +27,6 @@ class APIClient:
     
     def login(self, username: str, password: str) -> Dict[str, Any]:
         """用户登录"""
-        # 添加调试信息
-        st.write(f"🔍 调试信息:")
-        st.write(f"- API地址: {self.base_url}")
-        st.write(f"- 离线模式: {self.offline_mode}")
-        st.write(f"- 用户名: {username}")
-        st.write(f"- 密码长度: {len(password)}")
-        
-        # 离线模式 - 使用模拟数据
-        if self.offline_mode:
-            # 模拟用户数据
-            mock_users = {
-                "admin": {"password": "admin123", "role": "admin", "name": "管理员", "id": 1},
-                "teacher": {"password": "teacher123", "role": "teacher", "name": "张老师", "id": 2},
-                "student": {"password": "student123", "role": "student", "name": "李同学", "id": 3}
-            }
-            
-            st.write(f"📋 可用用户: {list(mock_users.keys())}")
-            
-            if username in mock_users and mock_users[username]["password"] == password:
-                user_data = mock_users[username]
-                st.success("✅ 离线登录成功！")
-                return {
-                    "access_token": f"mock_token_{username}_{datetime.now().timestamp()}",
-                    "token_type": "bearer",
-                    "user": {
-                        "id": user_data["id"],
-                        "username": username,
-                        "name": user_data["name"],
-                        "role": user_data["role"]
-                    }
-                }
-            else:
-                st.error("❌ 用户名或密码错误")
-                return {"error": "用户名或密码错误"}
-        
-        # 在线模式 - 调用真实API
         try:
             response = self.session.post(
                 f"{self.base_url}/api/auth/login",

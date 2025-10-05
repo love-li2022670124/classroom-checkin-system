@@ -25,17 +25,24 @@ class AuthManager:
             # 调用API进行登录
             result = api_client.login(username, password)
             
-            if "error" not in result and "token" in result:
+            if "error" not in result and ("access_token" in result or "token" in result):
                 # 登录成功，保存会话信息
-                st.session_state[self.session_key] = result["token"]
-                st.session_state[self.user_info_key] = result.get("user_info", {})
+                token = result.get("access_token") or result.get("token")
+                st.session_state[self.session_key] = token
+                st.session_state[self.user_info_key] = result.get("user", {})
                 
                 # 设置API客户端的认证令牌
-                api_client.set_auth_token(result["token"])
+                api_client.set_auth_token(token)
                 
                 return True
             else:
-                st.error("登录失败：用户名或密码错误")
+                # 显示详细的错误信息
+                error_msg = result.get("error", "未知错误")
+                st.error(f"登录失败：{error_msg}")
+                st.write("**调试信息：**")
+                st.write(f"- API响应: {result}")
+                st.write(f"- 用户名: {username}")
+                st.write(f"- 密码长度: {len(password)}")
                 return False
                 
         except Exception as e:
