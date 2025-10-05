@@ -43,6 +43,29 @@ def init_api_client():
 auth_manager = init_auth()
 api_client = init_api_client()
 
+# 离线模式用户数据
+OFFLINE_USERS = {
+    "admin": {"password": "admin123", "role": "admin", "name": "管理员", "id": 1},
+    "teacher": {"password": "teacher123", "role": "teacher", "name": "张老师", "id": 2},
+    "student": {"password": "student123", "role": "student", "name": "李同学", "id": 3}
+}
+
+def offline_login(username: str, password: str):
+    """离线登录功能"""
+    if username in OFFLINE_USERS and OFFLINE_USERS[username]["password"] == password:
+        user_data = OFFLINE_USERS[username]
+        return {
+            "access_token": f"mock_token_{username}_{datetime.now().timestamp()}",
+            "token_type": "bearer",
+            "user": {
+                "id": user_data["id"],
+                "username": username,
+                "name": user_data["name"],
+                "role": user_data["role"]
+            }
+        }
+    return None
+
 # 自定义CSS样式
 def load_custom_css():
     st.markdown("""
@@ -127,22 +150,63 @@ def show_login_page():
         # 登录表单
         st.markdown("### 🔐 用户登录")
         
-        # 使用自定义登录表单组件
-        render_login_form(auth_manager, api_client)
+        # 离线登录表单
+        with st.form("login_form"):
+            username = st.text_input("用户名", value="admin", help="请输入用户名")
+            password = st.text_input("密码", type="password", value="admin123", help="请输入密码")
+            
+            col1, col2 = st.columns([2, 1])
+            with col1:
+                remember_me = st.checkbox("记住我")
+            with col2:
+                submit_button = st.form_submit_button("登录", use_container_width=True)
+        
+        # 处理登录
+        if submit_button:
+            st.write("🔍 正在验证登录信息...")
+            
+            # 显示调试信息
+            st.write(f"**调试信息:**")
+            st.write(f"- 用户名: `{username}`")
+            st.write(f"- 密码长度: {len(password)}")
+            st.write(f"- 可用用户: {list(OFFLINE_USERS.keys())}")
+            
+            # 尝试离线登录
+            login_result = offline_login(username, password)
+            
+            if login_result:
+                # 保存登录状态
+                st.session_state["logged_in"] = True
+                st.session_state["user_info"] = login_result["user"]
+                st.session_state["access_token"] = login_result["access_token"]
+                
+                st.success("✅ 离线登录成功！")
+                st.balloons()
+                
+                # 显示用户信息
+                st.info(f"欢迎，{login_result['user']['name']}！")
+                
+                # 刷新页面
+                st.rerun()
+            else:
+                st.error("❌ 用户名或密码错误")
+                st.write("**可用的测试账户:**")
+                for user, data in OFFLINE_USERS.items():
+                    st.write(f"- **{user}**: {data['name']} (密码: {data['password']})")
         
         # 演示账户信息
-        with st.expander("📋 演示账户信息", expanded=False):
+        with st.expander("📋 演示账户信息", expanded=True):
             st.markdown("""
             **管理员账户：**
             - 用户名：admin
             - 密码：admin123
             
             **教师账户：**
-            - 用户名：teacher001
+            - 用户名：teacher
             - 密码：teacher123
             
             **学生账户：**
-            - 用户名：student001
+            - 用户名：student
             - 密码：student123
             """)
         
